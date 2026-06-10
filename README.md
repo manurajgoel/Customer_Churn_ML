@@ -7,9 +7,11 @@ Exploratory analysis of a telecom dataset to uncover why customers leave. Identi
 ## 📁 Project Structure
 
 ```
-├── customer_churn_eda.ipynb       # Main EDA notebook
-├── RawData_Telco-Customer-Churn.csv  # Raw dataset
+├── customer_churn_eda.ipynb          # Main EDA notebook
+├── RawData_Telco-Customer-Churn.csv  # Raw dataset (original)
+├── EDA_telco_churn.csv               # Cleaned & encoded dataset (post EDA)
 └── README.md
+
 ```
 
 ---
