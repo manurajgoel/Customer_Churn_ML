@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Churn Sketchbook — Customer Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --desk:#1a1a1a;
+    --desk-light:#252525;
+    --paper:#f5f0e6;
+    --paper-dark:#ebe5d8;
+    --grid-line:rgba(100,149,237,0.08);
+    --ink:#2d2d2d;
+    --ink-light:#5a5a5a;
+    --terracotta:#c75b3a;
+    --terracotta-light:#e07a5f;
+    --terracotta-dark:#a04020;
+    --terracotta-soft:rgba(199,91,58,0.12);
+    --danger:#c0392b;
+    --danger-soft:rgba(192,57,43,0.12);
+    --safe:#27ae60;
+    --safe-soft:rgba(39,174,96,0.12);
+    --warn:#d4a017;
+    --warn-soft:rgba(212,160,23,0.12);
+    --hand:'Caveat', cursive;
+    --body:'Inter', sans-serif;
+    --mono:'JetBrains Mono', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--desk);
+    color:var(--ink);
+    font-family:var(--body);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    padding:24px;
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0, transparent 48px, rgba(255,255,255,0.015) 48px, rgba(255,255,255,0.015) 49px),
+      repeating-linear-gradient(0deg, transparent 0, transparent 48px, rgba(255,255,255,0.015) 48px, rgba(255,255,255,0.015) 49px);
+  }
+
+  /* Radial glow so center feels lit */
+  .bg-glow{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(ellipse 70% 60% at 50% 40%, rgba(60,50,40,0.25) 0%, transparent 70%);
+  }
+
+  /* ===== DESK DOODLES ===== */
+  .desk-item{
+    position:fixed; z-index:1; pointer-events:none;
+    opacity:0.35;
+  }
+  .desk-coffee{top:8%; left:6%; transform:rotate(-12deg);}
+  .desk-pencil{top:65%; left:4%; transform:rotate(35deg);}
+  .desk-clip{top:20%; right:5%; transform:rotate(15deg);}
+  .desk-sticky{top:55%; right:7%; transform:rotate(-5deg);}
+  .desk-crumple{bottom:10%; left:12%; transform:rotate(8deg);}
+
+  @media(max-width:860px){
+    .desk-item{display:none;}
+  }
+
+  /* ===== NOTEBOOK ===== */
+  .notebook-wrap{
+    max-width:840px; margin:0 auto;
+    position:relative; z-index:5;
+  }
+  .notebook{
+    background:var(--paper);
+    border-radius: 20px 20px 24px 24px;
+    position:relative;
+    box-shadow:
+      0 0 0 3px var(--terracotta),
+      0 0 0 6px var(--paper),
+      0 0 0 9px var(--terracotta-dark),
+      12px 18px 60px rgba(0,0,0,0.5);
+    overflow:hidden;
+  }
+  /* Spiral binding */
+  .notebook::before{
+    content:''; position:absolute; top:-14px; left:40px; right:40px; height:28px;
+    background: repeating-linear-gradient(90deg, #bbb 0px, #bbb 3px, transparent 3px, transparent 14px);
+    border-radius:14px; z-index:2; opacity:0.6;
+  }
+  /* Grid paper bg */
+  .paper-inner{
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    padding:48px 36px 56px;
+    position:relative;
+  }
+
+  /* ===== DOODLES ===== */
+  .doodle{
+    position:absolute; z-index:20; pointer-events:none;
+    opacity:0.7;
+  }
+  .doodle svg{overflow:visible;}
+  .doodle-flower{top:80px; left:-60px; transform:rotate(-15deg);}
+  .doodle-star{top:180px; right:-50px; transform:rotate(20deg);}
+  .doodle-monitor{bottom:120px; left:-70px; transform:rotate(8deg);}
+  .doodle-bird{bottom:200px; right:-55px; transform:rotate(-10deg);}
+  .doodle-bolt{top:45%; left:-45px; transform:rotate(25deg);}
+  .doodle-leaf{top:35%; right:-40px; transform:rotate(45deg);}
+
+  @media(max-width:860px){
+    .doodle{display:none;}
+    body{padding:16px;}
+    .paper-inner{padding:36px 20px 48px;}
+  }
+
+  /* ===== HEADER ===== */
+  .nb-header{
+    text-align:center; margin-bottom:8px;
+  }
+  .hero-hand{
+    font-family:var(--hand); font-size:clamp(48px, 8vw, 72px);
+    font-weight:700; color:var(--terracotta); line-height:0.95;
+    letter-spacing:-0.01em; margin-bottom:8px; transform:rotate(-1.5deg);
+    display:inline-block;
+  }
+  .hero-sub{
+    font-family:var(--hand); font-size:clamp(20px, 3vw, 28px);
+    color:var(--ink-light); font-weight:500; margin-bottom:6px;
+  }
+  .hero-desc{
+    font-size:14px; color:var(--ink-light); max-width:420px; margin:0 auto 36px;
+    line-height:1.6;
+  }
+
+  /* ===== CARDS (paper sheets) ===== */
+  .sheet{
+    background:rgba(255,255,255,0.55);
+    border:2px solid rgba(0,0,0,0.07);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding:24px 22px;
+    margin-bottom:20px;
+    position:relative;
+    transition:transform 0.25s, box-shadow 0.25s;
+  }
+  .sheet:hover{
+    transform:translateY(-2px) rotate(0.3deg);
+    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+  }
+  /* Washi tape corners */
+  .sheet::before, .sheet::after{
+    content:''; position:absolute; width:48px; height:16px;
+    background:var(--terracotta); opacity:0.25;
+    z-index:1; pointer-events:none;
+  }
+  .sheet::before{top:-6px; left:18px; transform:rotate(-3deg); border-radius:2px;}
+  .sheet::after{bottom:-6px; right:22px; transform:rotate(2deg); border-radius:2px; background:var(--terracotta-dark); opacity:0.2;}
+
+  .sheet-title{
+    font-family:var(--hand); font-size:26px; font-weight:700;
+    color:var(--terracotta-dark); margin-bottom:18px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .sheet-title .icon{
+    width:32px; height:32px; border-radius:50%;
+    background:var(--terracotta-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex-shrink:0;
+  }
+
+  /* ===== FORM GRID ===== */
+  .form-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:14px;
+  }
+  .field{position:relative;}
+  .field label{
+    display:block; font-size:11px; font-weight:600; color:var(--ink-light);
+    margin-bottom:6px; letter-spacing:0.03em; text-transform:uppercase;
+  }
+  .field input, .field select{
+    width:100%; background:rgba(255,255,255,0.6);
+    border:2px solid rgba(0,0,0,0.08);
+    border-radius: 14px;
+    padding:10px 14px; color:var(--ink); font-size:13.5px;
+    font-family:var(--body); outline:none; transition:all 0.2s;
+    appearance:none; -webkit-appearance:none;
+  }
+  .field input:focus, .field select:focus{
+    border-color:var(--terracotta);
+    background:rgba(255,255,255,0.85);
+    box-shadow:0 0 0 3px var(--terracotta-soft);
+  }
+  .field select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%235a5a5a' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; padding-right:30px;
+  }
+  .field select option{background:var(--paper); color:var(--ink);}
+
+  /* ===== SUBMIT ===== */
+  .submit-wrap{margin-top:28px; text-align:center;}
+  .submit-btn{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:14px 36px; border:none;
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    background:var(--terracotta); color:#fff;
+    font-family:var(--hand); font-size:26px; font-weight:700;
+    cursor:pointer; position:relative; overflow:hidden;
+    transition:transform 0.2s, box-shadow 0.2s;
+    box-shadow:0 4px 0 var(--terracotta-dark), 0 6px 16px rgba(199,91,58,0.3);
+  }
+  .submit-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 0 var(--terracotta-dark), 0 10px 24px rgba(199,91,58,0.35);
+  }
+  .submit-btn:active{
+    transform:translateY(2px);
+    box-shadow:0 2px 0 var(--terracotta-dark), 0 3px 8px rgba(199,91,58,0.3);
+  }
+  .submit-btn:disabled{opacity:0.5; cursor:not-allowed; transform:none; box-shadow:0 4px 0 var(--terracotta-dark);}
+
+  .err{
+    color:var(--danger); font-size:13px; margin-top:14px; font-weight:600;
+    font-family:var(--hand); font-size:18px;
+  }
+
+  /* ===== RESULTS ===== */
+  #result{display:none; margin-top:36px;}
+  #result.show{display:block; animation:pageFlip 0.7s cubic-bezier(0.16,1,0.3,1);}
+  @keyframes pageFlip{
+    from{opacity:0; transform:perspective(800px) rotateX(8deg) translateY(20px);}
+    to{opacity:1; transform:perspective(800px) rotateX(0) translateY(0);}
+  }
+
+  /* Polaroid result card */
+  .polaroid{
+    background:#fff;
+    border-radius:16px;
+    padding:18px 18px 28px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+    text-align:center; margin-bottom:24px;
+    position:relative; transform:rotate(-1deg);
+    transition:transform 0.3s;
+  }
+  .polaroid:hover{transform:rotate(0deg) scale(1.01);}
+  .polaroid-img{
+    background:var(--paper-dark);
+    border-radius:10px; padding:28px 20px;
+    margin-bottom:16px; position:relative; overflow:hidden;
+  }
+  .polaroid-img::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:4px;
+    background:repeating-linear-gradient(90deg, var(--terracotta) 0, var(--terracotta) 8px, transparent 8px, transparent 16px);
+    opacity:0.3;
+  }
+
+  /* Gauge */
+  .gauge-ring{
+    width:160px; height:160px; position:relative; margin:0 auto 16px;
+  }
+  .gauge-ring svg{transform:rotate(-90deg);}
+  .gauge-ring .track{fill:none; stroke:rgba(0,0,0,0.06); stroke-width:10; stroke-linecap:round;}
+  .gauge-ring .arc{
+    fill:none; stroke-width:10; stroke-linecap:round;
+    stroke-dasharray:440; stroke-dashoffset:440;
+    transition:stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1), stroke 0.4s;
+  }
+  .gauge-center{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+  .gauge-pct{
+    font-family:var(--hand); font-size:48px; font-weight:700; line-height:1;
+    color:var(--ink);
+  }
+  .gauge-label{
+    font-family:var(--mono); font-size:9px; color:var(--ink-light);
+    text-transform:uppercase; letter-spacing:0.12em; margin-top:4px;
+  }
+
+  .verdict-hand{
+    font-family:var(--hand); font-size:32px; font-weight:700; margin-bottom:6px;
+  }
+  .verdict-hand.churn{color:var(--danger);}
+  .verdict-hand.stay{color:var(--safe);}
+  .verdict-sub{
+    font-size:12px; color:var(--ink-light); margin-bottom:12px;
+    font-family:var(--mono);
+  }
+
+  .stamp{
+    display:inline-block; padding:6px 18px; border-radius:4px;
+    font-family:var(--hand); font-size:20px; font-weight:700;
+    border:2px solid; transform:rotate(-2deg);
+  }
+  .stamp-high{color:var(--danger); border-color:var(--danger); background:var(--danger-soft);}
+  .stamp-med{color:var(--warn); border-color:var(--warn); background:var(--warn-soft);}
+  .stamp-low{color:var(--safe); border-color:var(--safe); background:var(--safe-soft);}
+
+  /* Baseline note */
+  .baseline-sheet{
+    background:rgba(255,255,255,0.7);
+    border:2px dashed rgba(0,0,0,0.1);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding:16px 20px; margin-bottom:20px;
+    font-size:13.5px; color:var(--ink-light); line-height:1.6;
+    position:relative;
+  }
+  .baseline-sheet b{color:var(--ink); font-weight:600;}
+  .baseline-sheet::before{
+    content:'📌'; position:absolute; top:-10px; left:20px; font-size:18px;
+    transform:rotate(-15deg);
+  }
+
+  /* Factors */
+  .factors-title{
+    font-family:var(--hand); font-size:28px; font-weight:700;
+    color:var(--terracotta-dark); margin-bottom:4px;
+  }
+  .factors-sub{
+    font-size:12.5px; color:var(--ink-light); margin-bottom:20px;
+  }
+
+  .factor-row{
+    display:grid; grid-template-columns:1fr auto; gap:6px 14px;
+    padding:14px 0; border-bottom:1.5px dashed rgba(0,0,0,0.08);
+    align-items:center; animation:scribbleIn 0.4s ease both;
+  }
+  .factor-row:last-child{border-bottom:none;}
+  @keyframes scribbleIn{
+    from{opacity:0; transform:translateX(-12px) rotate(-0.5deg);}
+    to{opacity:1; transform:translateX(0) rotate(0);}
+  }
+
+  .factor-name{font-size:13.5px; color:var(--ink); font-weight:500;}
+  .factor-val{font-family:var(--mono); font-size:12px; font-weight:600; white-space:nowrap;}
+  .factor-val.up{color:var(--danger);}
+  .factor-val.down{color:var(--safe);}
+
+  .factor-bar-wrap{
+    grid-column:1/-1; height:5px;
+    background:rgba(0,0,0,0.04); border-radius:10px;
+    overflow:hidden; position:relative;
+  }
+  .factor-bar{
+    height:100%; border-radius:10px;
+    transition:width 0.9s cubic-bezier(0.16,1,0.3,1);
+    position:relative;
+  }
+  .factor-bar.up{background:var(--danger); opacity:0.8;}
+  .factor-bar.down{background:var(--safe); opacity:0.8;}
+  .factor-bar::after{
+    content:''; position:absolute; right:-2px; top:0; bottom:0; width:4px;
+    background:inherit; border-radius:50%; opacity:0.6;
+  }
+
+  /* Footer */
+  .nb-footer{
+    text-align:center; margin-top:40px; padding-top:20px;
+    border-top:2px dashed rgba(0,0,0,0.08);
+  }
+  .nb-footer p{
+    font-family:var(--mono); font-size:10px; color:var(--ink-light);
+    letter-spacing:0.04em;
+  }
+  .nb-footer .hand{
+    font-family:var(--hand); font-size:18px; color:var(--terracotta);
+    margin-top:4px;
+  }
+
+  @media(max-width:560px){
+    .paper-inner{padding:28px 16px 40px;}
+    .form-grid{grid-template-columns:1fr 1fr;}
+    .sheet{padding:18px 16px;}
+    .gauge-ring{width:130px; height:130px;}
+    .gauge-pct{font-size:38px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- Desk doodles -->
+<div class="desk-item desk-coffee">
+  <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+    <ellipse cx="50" cy="50" rx="42" ry="42" stroke="#3a3a3a" stroke-width="1.5" opacity="0.4"/>
+    <ellipse cx="50" cy="50" rx="35" ry="35" stroke="#3a3a3a" stroke-width="1" opacity="0.25"/>
+    <ellipse cx="50" cy="50" rx="28" ry="28" stroke="#3a3a3a" stroke-width="0.8" opacity="0.15"/>
+    <path d="M72 38 Q85 38 85 52 Q85 66 72 66" stroke="#3a3a3a" stroke-width="1.5" opacity="0.35" fill="none"/>
+  </svg>
+</div>
+<div class="desk-item desk-pencil">
+  <svg width="120" height="24" viewBox="0 0 120 24" fill="none">
+    <rect x="10" y="6" width="90" height="12" rx="3" fill="#d4a017" opacity="0.3"/>
+    <polygon points="100,6 115,12 100,18" fill="#e8e0d0" opacity="0.4"/>
+    <rect x="8" y="5" width="4" height="14" rx="1" fill="#c0b0a0" opacity="0.35"/>
+  </svg>
+</div>
+<div class="desk-item desk-clip">
+  <svg width="40" height="60" viewBox="0 0 40 60" fill="none">
+    <path d="M12 10 L12 45 Q12 52 20 52 Q28 52 28 45 L28 10" stroke="#888" stroke-width="2" fill="none" opacity="0.3"/>
+    <path d="M16 8 L16 4 Q16 2 20 2 Q24 2 24 4 L24 8" stroke="#888" stroke-width="2" fill="none" opacity="0.3"/>
+  </svg>
+</div>
+<div class="desk-item desk-sticky">
+  <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
+    <rect x="4" y="4" width="62" height="62" rx="4" fill="#ffe66d" opacity="0.15" stroke="#d4a017" stroke-width="1" stroke-dasharray="4 2"/>
+    <line x1="15" y1="22" x2="55" y2="22" stroke="#b8950a" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/>
+    <line x1="15" y1="34" x2="45" y2="34" stroke="#b8950a" stroke-width="1.5" opacity="0.15" stroke-linecap="round"/>
+    <line x1="15" y1="46" x2="50" y2="46" stroke="#b8950a" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/>
+  </svg>
+</div>
+<div class="desk-item desk-crumple">
+  <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
+    <path d="M10 15 L18 8 L30 12 L42 10 L45 22 L40 35 L28 42 L15 38 L8 28 Z" fill="#e0d8c8" opacity="0.12" stroke="#a09080" stroke-width="1"/>
+    <line x1="15" y1="18" x2="35" y2="32" stroke="#a09080" stroke-width="0.8" opacity="0.1"/>
+  </svg>
+</div>
+
+<!-- Doodles around notebook -->
+<div class="doodle doodle-flower">
+  <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+    <circle cx="30" cy="30" r="6" fill="var(--terracotta)" opacity="0.6"/>
+    <ellipse cx="30" cy="14" rx="5" ry="10" fill="var(--terracotta)" opacity="0.4" transform="rotate(0 30 30)"/>
+    <ellipse cx="30" cy="14" rx="5" ry="10" fill="var(--terracotta)" opacity="0.4" transform="rotate(72 30 30)"/>
+    <ellipse cx="30" cy="14" rx="5" ry="10" fill="var(--terracotta)" opacity="0.4" transform="rotate(144 30 30)"/>
+    <ellipse cx="30" cy="14" rx="5" ry="10" fill="var(--terracotta)" opacity="0.4" transform="rotate(216 30 30)"/>
+    <ellipse cx="30" cy="14" rx="5" ry="10" fill="var(--terracotta)" opacity="0.4" transform="rotate(288 30 30)"/>
+    <path d="M30 36 Q32 48 28 56" stroke="var(--terracotta)" stroke-width="2" fill="none" opacity="0.5" stroke-linecap="round"/>
+  </svg>
+</div>
+<div class="doodle doodle-star">
+  <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
+    <path d="M25 5 L28 20 L43 20 L31 29 L35 44 L25 35 L15 44 L19 29 L7 20 L22 20 Z" fill="var(--warn)" opacity="0.35" stroke="var(--warn)" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>
+</div>
+<div class="doodle doodle-monitor">
+  <svg width="70" height="60" viewBox="0 0 70 60" fill="none">
+    <rect x="8" y="6" width="54" height="38" rx="4" stroke="var(--ink-light)" stroke-width="2" fill="none" opacity="0.4"/>
+    <rect x="12" y="10" width="46" height="26" fill="var(--terracotta-soft)" opacity="0.3" rx="2"/>
+    <path d="M28 44 L28 52 L42 52 L42 44" stroke="var(--ink-light)" stroke-width="2" fill="none" opacity="0.4" stroke-linecap="round"/>
+    <path d="M22 52 L48 52" stroke="var(--ink-light)" stroke-width="2" fill="none" opacity="0.4" stroke-linecap="round"/>
+    <circle cx="35" cy="23" r="5" fill="none" stroke="var(--terracotta)" stroke-width="1.5" opacity="0.5"/>
+    <path d="M38 20 L42 16" stroke="var(--terracotta)" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+  </svg>
+</div>
+<div class="doodle doodle-bird">
+  <svg width="55" height="45" viewBox="0 0 55 45" fill="none">
+    <path d="M10 25 Q20 10 35 15 Q45 18 48 12" stroke="var(--ink-light)" stroke-width="2" fill="none" opacity="0.35" stroke-linecap="round"/>
+    <circle cx="35" cy="15" r="3" fill="var(--ink-light)" opacity="0.35"/>
+    <path d="M38 14 L44 12" stroke="var(--ink-light)" stroke-width="1.5" opacity="0.35" stroke-linecap="round"/>
+    <path d="M15 28 L8 32 M15 28 L10 22" stroke="var(--ink-light)" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+    <path d="M42 30 Q46 34 50 32" stroke="var(--ink-light)" stroke-width="1.5" opacity="0.25" stroke-linecap="round"/>
+  </svg>
+</div>
+<div class="doodle doodle-bolt">
+  <svg width="40" height="50" viewBox="0 0 40 50" fill="none">
+    <path d="M22 4 L10 26 L20 26 L14 46 L30 22 L20 22 Z" fill="var(--warn)" opacity="0.25" stroke="var(--warn)" stroke-width="1.5" stroke-linejoin="round"/>
+  </svg>
+</div>
+<div class="doodle doodle-leaf">
+  <svg width="45" height="50" viewBox="0 0 45 50" fill="none">
+    <path d="M22 6 Q38 16 38 32 Q38 42 22 46 Q6 42 6 32 Q6 16 22 6Z" fill="var(--safe)" opacity="0.2" stroke="var(--safe)" stroke-width="1.5"/>
+    <path d="M22 6 L22 46" stroke="var(--safe)" stroke-width="1" opacity="0.3"/>
+    <path d="M22 20 L30 14 M22 28 L32 24 M22 36 L28 32" stroke="var(--safe)" stroke-width="1" opacity="0.25" stroke-linecap="round"/>
+  </svg>
+</div>
+
+<div class="notebook-wrap">
+  <div class="notebook">
+    <div class="paper-inner">
+
+      <header class="nb-header">
+        <h1 class="hero-hand">The Churn<br>Sketchbook</h1>
+        <p class="hero-sub">Will they stay or will they go?</p>
+        <p class="hero-desc">Drop a customer profile into the notebook and let the model scribble out the hidden signals behind their loyalty.</p>
+      </header>
+
+      <form id="predict-form">
+
+        <div class="sheet">
+          <div class="sheet-title"><span class="icon">👤</span> Customer Profile</div>
+          <div class="form-grid">
+            <div class="field"><label>Gender</label>
+              <select name="gender"><option>Female</option><option>Male</option></select>
+            </div>
+            <div class="field"><label>Senior citizen</label>
+              <select name="SeniorCitizen"><option value="0">No</option><option value="1">Yes</option></select>
+            </div>
+            <div class="field"><label>Has partner</label>
+              <select name="Partner"><option>No</option><option>Yes</option></select>
+            </div>
+            <div class="field"><label>Has dependents</label>
+              <select name="Dependents"><option>No</option><option>Yes</option></select>
+            </div>
+            <div class="field" style="grid-column:span 2;"><label>Customer Tenure (months)</label>
+              <input type="number" name="tenure" min="0" max="100" value="12" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet">
+          <div class="sheet-title"><span class="icon">📡</span> Services & Connectivity</div>
+          <div class="form-grid">
+            <div class="field"><label>Phone service</label>
+              <select name="PhoneService" id="PhoneService"><option>Yes</option><option>No</option></select>
+            </div>
+            <div class="field"><label>Multiple lines</label>
+              <select name="MultipleLines" id="MultipleLines"><option>No</option><option>Yes</option><option>No phone service</option></select>
+            </div>
+            <div class="field"><label>Internet service</label>
+              <select name="InternetService" id="InternetService"><option>Fiber optic</option><option>DSL</option><option>No</option></select>
+            </div>
+            <div class="field"><label>Online security</label>
+              <select name="OnlineSecurity" class="inet-dep"><option>No</option><option>Yes</option><option>No internet service</option></select>
+            </div>
+            <div class="field"><label>Online backup</label>
+              <select name="OnlineBackup" class="inet-dep"><option>No</option><option>Yes</option><option>No internet service</option></select>
+            </div>
+            <div class="field"><label>Device protection</label>
+              <select name="DeviceProtection" class="inet-dep"><option>No</option><option>Yes</option><option>No internet service</option></select>
+            </div>
+            <div class="field"><label>Tech support</label>
+              <select name="TechSupport" class="inet-dep"><option>No</option><option>Yes</option><option>No internet service</option></select>
+            </div>
+            <div class="field"><label>Streaming TV</label>
+              <select name="StreamingTV" class="inet-dep"><option>No</option><option>Yes</option><option>No internet service</option></select>
+            </div>
+            <div class="field"><label>Streaming movies</label>
+              <select name="StreamingMovies" class="inet-dep"><option>No</option><option>Yes</option><option>No internet service</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet">
+          <div class="sheet-title"><span class="icon">💳</span> Account & Billing</div>
+          <div class="form-grid">
+            <div class="field"><label>Contract</label>
+              <select name="Contract"><option>Month-to-month</option><option>One year</option><option>Two year</option></select>
+            </div>
+            <div class="field"><label>Paperless billing</label>
+              <select name="PaperlessBilling"><option>Yes</option><option>No</option></select>
+            </div>
+            <div class="field"><label>Payment method</label>
+              <select name="PaymentMethod">
+                <option>Electronic check</option><option>Mailed check</option>
+                <option>Bank transfer (automatic)</option><option>Credit card (automatic)</option>
+              </select>
+            </div>
+            <div class="field"><label>Monthly charges ($)</label>
+              <input type="number" step="0.01" name="MonthlyCharges" value="70.00" required>
+            </div>
+            <div class="field"><label>Total charges ($)</label>
+              <input type="number" step="0.01" name="TotalCharges" value="840.00" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="submit-wrap">
+          <button class="submit-btn" type="submit" id="submit-btn">🔮 Assess churn risk</button>
+          <div class="err" id="predict-err"></div>
+        </div>
+      </form>
+
+      <div id="result">
+        <div class="polaroid">
+          <div class="polaroid-img">
+            <div class="gauge-ring">
+              <svg viewBox="0 0 160 160" width="160" height="160">
+                <circle class="track" cx="80" cy="80" r="70"/>
+                <circle id="gauge-arc" class="arc" cx="80" cy="80" r="70" stroke="var(--terracotta)"/>
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-pct" id="gauge-pct">—</div>
+                <div class="gauge-label">Churn probability</div>
+              </div>
+            </div>
+            <div class="verdict-hand" id="verdict">—</div>
+            <div class="verdict-sub" id="verdict-sub"></div>
+            <span class="stamp" id="risk-pill">—</span>
+          </div>
+        </div>
+
+        <div class="sheet">
+          <div class="baseline-sheet" id="baseline-note"></div>
+
+          <div class="factors-title">Why this prediction</div>
+          <div class="factors-sub">SHAP contributions — how each factor moved probability from the model baseline.</div>
+          <div id="factors-list"></div>
+        </div>
+      </div>
+
+      <footer class="nb-footer">
+        <p>Optuna-tuned LightGBM · SHAP TreeExplainer · IBM Telco Customer Churn</p>
+        <p class="hand">— made with curiosity —</p>
+      </footer>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = window.API_BASE || '';
+
+// Internet / Phone dependency logic
+document.getElementById('InternetService').addEventListener('change', (e)=>{
+  const disabled = e.target.value === 'No';
+  document.querySelectorAll('.inet-dep').forEach(sel=>{
+    if(disabled){ sel.value = 'No internet service'; }
+    else if(sel.value === 'No internet service'){ sel.value = 'No'; }
+  });
+});
+document.getElementById('PhoneService').addEventListener('change', (e)=>{
+  const ml = document.getElementById('MultipleLines');
+  if(e.target.value === 'No'){ ml.value = 'No phone service'; }
+  else if(ml.value === 'No phone service'){ ml.value = 'No'; }
+});
+
+// Submit
+document.getElementById('predict-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const errEl = document.getElementById('predict-err');
+  errEl.textContent = '';
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = '🔮 Reading the tea leaves…';
+
+  const fd = new FormData(e.target);
+  const payload = Object.fromEntries(fd.entries());
+  payload.SeniorCitizen = parseInt(payload.SeniorCitizen);
+  payload.tenure = parseInt(payload.tenure);
+  payload.MonthlyCharges = parseFloat(payload.MonthlyCharges);
+  payload.TotalCharges = parseFloat(payload.TotalCharges);
+
+  try{
+    const res = await fetch(API_BASE + '/api/predict', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    if(!res.ok){ const d = await res.json(); throw new Error(d.detail || 'Prediction failed'); }
+    const data = await res.json();
+    renderResult(data);
+  }catch(err){
+    errEl.textContent = err.message;
+  }finally{
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+});
+
+function renderResult(data){
+  const result = document.getElementById('result');
+  result.classList.remove('show');
+  void result.offsetWidth;
+  result.classList.add('show');
+
+  const isChurn = data.churn_prediction === 'Churn';
+  const pct = data.churn_probability * 100;
+
+  const verdict = document.getElementById('verdict');
+  verdict.textContent = isChurn ? 'Likely to churn' : 'Likely to stay';
+  verdict.className = 'verdict-hand ' + (isChurn ? 'churn' : 'stay');
+
+  document.getElementById('verdict-sub').textContent =
+    `Decision threshold: ${(data.threshold_used*100).toFixed(0)}%`;
+
+  const pill = document.getElementById('risk-pill');
+  pill.textContent = data.risk_level + ' risk';
+  pill.className = 'stamp stamp-' + (data.risk_level === 'High' ? 'high' : data.risk_level === 'Medium' ? 'med' : 'low');
+
+  document.getElementById('gauge-pct').textContent = pct.toFixed(1) + '%';
+  const arc = document.getElementById('gauge-arc');
+  const circumference = 2 * Math.PI * 70;
+  const offset = circumference * (1 - Math.min(pct, 100) / 100);
+  arc.style.stroke = isChurn ? 'var(--danger)' : 'var(--safe)';
+  requestAnimationFrame(()=>{ arc.style.strokeDashoffset = offset; });
+
+  const basePct = (data.base_probability * 100).toFixed(1);
+  const diff = pct - data.base_probability * 100;
+  const diffTxt = diff >= 0 ? `+${diff.toFixed(1)} pts above` : `${diff.toFixed(1)} pts below`;
+  document.getElementById('baseline-note').innerHTML =
+    `The average customer in this dataset churns at <b>${basePct}%</b>. This profile sits <b>${diffTxt}</b> that baseline.`;
+
+  const factors = data.top_factors || [];
+  const maxAbs = Math.max(...factors.map(f => Math.abs(f.contribution)), 0.0001);
+  document.getElementById('factors-list').innerHTML = factors.map((f, i) => {
+    const widthPct = (Math.abs(f.contribution) / maxAbs * 100).toFixed(1);
+    const cls = f.direction === 'increases' ? 'up' : 'down';
+    const sign = f.direction === 'increases' ? '+' : '−';
+    return `
+      <div class="factor-row" style="animation-delay:${i * 0.07}s">
+        <div class="factor-name">${f.feature}</div>
+        <div class="factor-val ${cls}">${sign}${Math.abs(f.contribution).toFixed(3)}</div>
+        <div class="factor-bar-wrap">
+          <div class="factor-bar ${cls}" style="width:0%" data-width="${widthPct}%"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.factor-bar').forEach(bar=>{
+      bar.style.width = bar.dataset.width;
+    });
+  });
+
+  result.scrollIntoView({behavior:'smooth', block:'start'});
+}
+</script>
+</body>
+</html>
